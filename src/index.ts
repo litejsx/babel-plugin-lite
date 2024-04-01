@@ -10,15 +10,15 @@ export default () => {
     inherits: SyntaxJSX,
     visitor: {
       JSXElement(path: NodePath<JSXElement>) {
-        console.log("JSXElement!");
         // transformTemplate(path);
       },
       JSXFragment(path: any) {
         console.log("JSXFragment!");
       },
       Program: {
-        enter(path: any) {
+        enter(path: any, state: any) {
           console.log("enter!");
+          debugger
         },
         exit(path: any) {
           console.log("exit!", path.node.body.length);
