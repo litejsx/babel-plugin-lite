@@ -1,3 +1,5 @@
+export * from './stateProperty';
+
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 export const HTML_TAGS =
   'html,body,base,head,link,meta,style,title,address,article,aside,footer,' +

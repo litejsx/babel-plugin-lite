@@ -1,4 +1,4 @@
-import { ref, createComponent } from 'wisejs';
+import { ref, _createComponent } from 'wisejs';
 const state = ref(0);
 const styles = {
   test: 'name'
@@ -11,14 +11,7 @@ export default (() => {
   const click = () => {
     console.log('clcik');
   };
-  const helloHTML = <div>hello</div>;
-  const listHTML = <div>{[1, 2].map(value => <div>{value}</div>)}</div>;
-  return <div class={styles.test}>
-      {state}
-      <div onClick={click}>{msg}</div>
-      <Test />
-      {helloHTML}
-      {listHTML}
-    </div>;
+  const helloHTML = createElement("div");
+  const listHTML = createElement("div");
+  return createElement("div");
 });
-<ttt:ttt2>

@@ -1,4 +1,4 @@
-import { ref, createComponent } from 'wisejs';
+import { ref, _createComponent } from 'wisejs';
 
 const state = ref(0);
 
