@@ -1,4 +1,5 @@
-export * from './stateProperty';
+export * from './stateName';
+export * from './helperName';
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 export const HTML_TAGS =

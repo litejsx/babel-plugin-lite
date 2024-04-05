@@ -1,9 +1,9 @@
-import { BabelFile } from '@babel/core';
-import { StateProperty } from '../constants';
+import { File } from '@babel/types';
+import { StateName, HelperName } from '../constants';
 
 export type State = {
-  get: (name: StateProperty) => any;
-  set: (name: StateProperty, value: any) => any;
+  get: (name: StateName | HelperName) => any;
+  set: (name: StateName | HelperName, value: any) => any;
   opts: Record<string, any>;
-  file: BabelFile;
+  file: File;
 };

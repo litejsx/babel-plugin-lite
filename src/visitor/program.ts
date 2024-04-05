@@ -1,13 +1,29 @@
 import { NodePath,  } from '@babel/traverse';
-import { Program } from '@babel/types';
+import { Program, jSXEmptyExpression, jSXElement, jSXOpeningElement, jSXIdentifier, jSXAttribute, jSXExpressionContainer, expressionStatement } from '@babel/types';
 import { State } from '../types';
-import { StateProperty } from '../constants';
+import { StateName, HelperName } from '../constants';
+import { importHelper } from '../utils';
 
 export default {
   enter(path: NodePath<Program>, state: State) {
-    console.log("enter!");
+    state.set(HelperName.createElement, path.scope.generateUidIdentifier(HelperName.createElement));
   },
   exit(path: NodePath<Program>, state: State) {
-    console.log("exit!", state.get(StateProperty.hasJSX));
+    if (state.get(StateName.hasJSX)) {
+      importHelper(path, state);
+    }
+
+    // const test = jSXElement(
+    //   jSXOpeningElement(
+    //     jSXIdentifier('div'),
+    //     [
+    //       jSXAttribute(jSXIdentifier('id'), jSXExpressionContainer(jSXEmptyExpression())),
+    //     ],
+    //   ),
+    //   null,
+    //   [],
+    // )
+
+    // path.node.body.push(expressionStatement(test))
   }
 }
