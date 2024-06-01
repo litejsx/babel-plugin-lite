@@ -8,9 +8,13 @@ const styles = {
 const styles1 = {
   test: 'name',
 }
-const Test = () => {
-  return (<div>test</div>)
+const fn = function render() {
+  return 'render';
 }
+const Test = () => {
+  return (<div name="name">test</div>)
+}
+
 export default () => {
   const msg = 'hello';
   const click = () => {
@@ -21,10 +25,14 @@ export default () => {
     [1,2].map((value) => (<div>{value}</div>))
   }</div>
   return (
-    <div class={styles.test} onClick={click}>
+    <div style={'display: block'} class={styles.test} onClick={click} {...express}>
       {state}
-      <div onClick={click}> {msg}</div>
-      <Test />
+      <div onClick={click}>{msg}</div>
+      <Test name="name" onClick={click} html={<div>child</div>}>
+        <div style="color: blue;">
+          <div>child</div>
+        </div>
+      </Test>
       <input />
       {helloHTML}
       {listHTML}

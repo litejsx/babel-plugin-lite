@@ -1,9 +1,6 @@
-jsx 处理
-1. 先抽组件，在template 之后insert
-2. 再抽动态子元素，在template 之后insert
-3. 处理依赖搜集. ref.value取值，dep搜集依赖（参考reactive）
-4. 注册监听事件
-5. 布尔类型、Null 以及 Undefined 将会忽略
+待处理 
+1. src/transform/transformJSX.ts 处理除 JSXElement | JSXFragment 的类型
+2. jsx 表达式可能为render。函数或数组. JSXSpreadChild 类型需遍历对象
 
-jsx
-1. 在 JSX 中嵌入表达式
+优化
+对变量的分析，减少无效update。已经变量是否是jsx

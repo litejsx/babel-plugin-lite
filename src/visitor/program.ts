@@ -1,16 +1,17 @@
 import { NodePath,  } from '@babel/traverse';
-import { Program, jSXEmptyExpression, jSXElement, jSXOpeningElement, jSXIdentifier, jSXAttribute, jSXExpressionContainer, expressionStatement } from '@babel/types';
+import { Program, ImportDeclaration, jSXElement, jSXOpeningElement, jSXIdentifier, jSXAttribute, jSXExpressionContainer, expressionStatement } from '@babel/types';
 import { State } from '../types';
-import { StateName, HelperName } from '../constants';
-import { importHelper } from '../utils';
+import { StateName } from '../constants';
 
 export default {
   enter(path: NodePath<Program>, state: State) {
-    state.set(HelperName.createElement, path.scope.generateUidIdentifier(HelperName.createElement));
+    // (Object.keys(HelperName) as HelperName[]).forEach((key: HelperName) => {
+    //   state.set(key, path.scope.generateUidIdentifier(key));
+    // });
   },
   exit(path: NodePath<Program>, state: State) {
-    if (state.get(StateName.hasJSX)) {
-      importHelper(path, state);
+    if (state.get(StateName.importHelper)) {
+      path.node.body.unshift(state.get<ImportDeclaration>(StateName.importHelper));
     }
 
     // const test = jSXElement(
