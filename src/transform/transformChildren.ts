@@ -79,7 +79,6 @@ export default function transformChildren(
         const str = (children.node as JSXText).value;
         // 过滤 "\n      ..." 字符
         if (!/^\n\s+$/gi.test(str)) {
-          debugger
           render.text({ str: stringLiteral(str), type: 'append' });
         }
     }

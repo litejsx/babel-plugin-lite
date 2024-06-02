@@ -1,9 +1,7 @@
 enum CallExpressionName {
   source = '@lite/lite',
   // component
-  componentInstance = 'componentInstance',
-  runComponent = 'runComponent',
-  destroyComponent = 'destroyComponent',
+  buildComponent = 'buildComponent',
 
   // element
   element = 'element',

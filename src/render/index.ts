@@ -56,7 +56,7 @@ export default class Render {
 
   public hoist(express: Expression) {
     const rootPath = this.pathState.get(StateName.jsxRootPath);
-    const id = rootPath.scope.generateUidIdentifier('render');
+    const id = rootPath.scope.generateUidIdentifier('hoist_render');
     const el = variableDeclaration(
       "const",
       [
@@ -192,7 +192,7 @@ export default class Render {
   }
 
   public component(tag: string, props: ObjectExpression) {
-    const id = this.nodePath.scope.generateUidIdentifier('instance');
+    const id = this.nodePath.scope.generateUidIdentifier('component');
     this.renderStatement.push(
       variableDeclaration(
         'const',
@@ -200,8 +200,8 @@ export default class Render {
           variableDeclarator(
             id,
             callExpression(
-              this.callExpressionNameMap[CallExpressionName.componentInstance],
-              [identifier(tag)],
+              this.callExpressionNameMap[CallExpressionName.buildComponent],
+              [identifier(tag), props],
             )
           )
         ]
@@ -210,16 +210,16 @@ export default class Render {
     this.mounteStatement.push(
       expressionStatement(
         callExpression(
-          this.callExpressionNameMap[CallExpressionName.runComponent],
-          [targetIdentifier, id, props],
+          memberExpression(id, identifier('mount')),
+          [targetIdentifier, anchorIdentifier],
         )
       )
     );
     this.destroyStatement.push(
       expressionStatement(
         callExpression(
-          this.callExpressionNameMap[CallExpressionName.destroyComponent],
-          [id],
+          memberExpression(id, identifier('destroy')),
+          [],
         )
       )
     );
@@ -236,7 +236,7 @@ export default class Render {
             id,
             callExpression(
               this.callExpressionNameMap[CallExpressionName.expression],
-              [express, stringLiteral(this.renderName.name)],
+              [express],
             )
           )
         ]
@@ -318,6 +318,15 @@ export default class Render {
               anchorIdentifier,
             ], 
             blockStatement(this.mounteStatement)
+          ),
+          objectMethod(
+            'method', 
+            identifier('update'), 
+            [
+              targetIdentifier,
+              anchorIdentifier,
+            ], 
+            blockStatement(this.updateStatement)
           ),
           objectMethod(
             'method', 
