@@ -11,11 +11,10 @@ export default function JSXElement(path: NodePath<JSXElement>, state: State) {
     nodePath: path,
     state,
   });
-  // console.log('++++++', path.getSource(), 
-  // path.getStatementParent())
-  // debugger
   transformJSXRoot(path, state, render);
-  const id = render.hoist(render.generateFunctionDeclaration())
+  const id = render.hoist(
+    render.generateFunctionDeclaration()
+  );
   
   path.replaceWith(id);
 }

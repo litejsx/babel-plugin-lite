@@ -19,6 +19,7 @@ import { StateName } from '../constants';
 import Render from '../render';
 import transformLogicalExpression from './transformLogicalExpression';
 import transformConditionalExpression from './transformConditionalExpression';
+import transformExpression from './transformExpression';
 
 export default function transformChildren(
   path: NodePath<JSXElement | JSXExpressionContainer | JSXFragment | JSXSpreadChild | JSXText>[],
@@ -27,27 +28,22 @@ export default function transformChildren(
 ){
   path.forEach((children) => {
     // JSXElement
-    // <div></div> => appendElement()
     if (children.isJSXElement()) {
       transformJSXElement(children, state, render)
       
       // JSXFragment
-      // <></>
     } else if (children.isJSXFragment()) {
       transformChildren(children.get('children'), state, render);
 
       // JSXExpressionContainer
-      // {expression} => (container, cache) => expression
     } else if (children.isJSXExpressionContainer()) {
       const expression = children.get('expression');
 
       // JSXElement
-      // <div></div> => appendElement()
       if (expression.isJSXElement()) {
         transformJSXElement(expression, state, render);
         
         // JSXFragment
-        // <></>
       } else if (expression.isJSXFragment()) {
         transformChildren(expression.get('children'), state, render);
 
@@ -64,7 +60,7 @@ export default function transformChildren(
 
         // ignore JSXEmptyExpression
       } else if (!expression.isJSXEmptyExpression()) {
-        render.expression(expression.node as Expression);
+        transformExpression(children, state, render);
       }
       
       // JSXSpreadChild

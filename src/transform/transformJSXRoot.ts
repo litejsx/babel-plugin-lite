@@ -3,7 +3,10 @@ import { JSXElement, JSXFragment, JSXExpressionContainer, JSXSpreadChild, JSXTex
 import { State } from '../types';
 import { StateName, anchorIdentifier } from '../constants';
 import transformJSXElement from './transformJSXElement';
+import transformExpression from './transformExpression';
 import transformChildren from './transformChildren';
+import transformLogicalExpression from './transformLogicalExpression';
+import transformConditionalExpression from './transformConditionalExpression';
 import transformJSXElementAttribute from './transformJSXElementAttribute';
 import { getTagLiteral, getParentId, setParentId } from '../utils';
 import { isNativeTag } from '../utils';
@@ -27,15 +30,31 @@ export default function transformJSXRoot(
   } else if (path.isJSXExpressionContainer()) {
     const expression = path.get('expression');
 
-    // ignore JSXEmptyExpression
-    if (!expression.isJSXEmptyExpression()) {
-      render.expression(expression.node as Expression);
+     // JSXElement
+     if (expression.isJSXElement()) {
+      transformJSXElement(expression, state, render, { root: true });
+      
+      // JSXFragment
+    } else if (expression.isJSXFragment()) {
+      transformJSXRoot(path, state, render);
+
+      // LogicalExpression
+    } else if (expression.isLogicalExpression()) {
+      transformLogicalExpression(expression, state, render);
+
+      // ConditionalExpression
+    } else if (expression.isConditionalExpression()) {
+      transformConditionalExpression(expression, state, render);
+
+
+      // ignore JSXEmptyExpression
+    } else if (!expression.isJSXEmptyExpression()) {
+      transformExpression(path, state, render);
     }
     
     // JSXSpreadChild
   }  else if (path.isJSXSpreadChild()) {
-    const expression = path.get('expression');
-    render.expression(expression.node as Expression);
+    transformExpression(path, state, render);
 
     // JSXText
   } else {
