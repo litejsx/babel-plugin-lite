@@ -28,3 +28,4 @@ export const SVG_TAGS =
 
   export const  targetIdentifier = identifier('target');
   export const  anchorIdentifier = identifier('anchor');
+  export const  refIdentifier = identifier('ref');

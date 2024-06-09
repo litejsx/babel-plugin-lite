@@ -67,7 +67,9 @@ export default function transformChildren(
       // {...expression}
     }  else if (children.isJSXSpreadChild()) {
       const expression = children.get('expression');
-      render.expression(expression.node as Expression);
+      render.expression({
+        express: expression.node as Expression
+      });
 
       // JSXText
       // string

@@ -15,7 +15,7 @@ import {
   JSXOpeningElement,
 } from '@babel/types';
 import { State } from '../types';
-import { getTagLiteral, getParentId } from '../utils';
+import { getTagLiteral, getParentId, getRefs } from '../utils';
 import transformChildren from './transformChildren';
 import transformJSXElement from './transformJSXElement';
 import transformJSXRoot from './transformJSXRoot';
@@ -55,6 +55,7 @@ export default function transformJSXElementAttribute(
           target,
           name: nameLiteral, 
           value: renderFunctionDeclaration,
+          refList: [],
         });
 
         // JSXExpressionContainer
@@ -78,13 +79,17 @@ export default function transformJSXElementAttribute(
             target,
             name: nameLiteral, 
             value: renderFunctionDeclaration,
+            refList: [],
           });
 
         } else if (expression.isExpression()) {
+          const refList = getRefs(value);
+
           render.attr({
             target,
             name: nameLiteral, 
             value: expression.node,
+            refList,
           });
         }
         
@@ -94,6 +99,7 @@ export default function transformJSXElementAttribute(
           target,
           name: nameLiteral, 
           value: value.node,
+          refList: [],
         });
       }
 

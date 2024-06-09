@@ -2,11 +2,12 @@ import { Identifier, identifier, blockStatement, Statement, returnStatement,
   objectExpression, objectMethod, functionExpression, variableDeclaration, 
   variableDeclarator, callExpression, stringLiteral, expressionStatement, 
   importDeclaration, importSpecifier, ImportDeclaration, ImportSpecifier, 
-  Expression, StringLiteral, memberExpression, CallExpression, ObjectExpression } from "@babel/types"
+  Expression, StringLiteral, memberExpression, CallExpression, ObjectExpression, 
+  ifStatement, arrayExpression } from "@babel/types"
 import { NodePath } from "@babel/traverse";
 import { State } from "../types";
 import CallExpressionName from "./helperName";
-import { StateName, targetIdentifier, anchorIdentifier } from "../constants";
+import { StateName, targetIdentifier, anchorIdentifier, refIdentifier } from "../constants";
 
 export interface RenderOption {
   nodePath: NodePath;
@@ -74,34 +75,40 @@ export default class Render {
     target: Identifier;
     name: string;
     value: Expression;
+    refList: Identifier[],
   }) {
-    const { target, name, value } = options;
-    let node: CallExpression;
+    const { target, name, value, refList } = options;
+    let callee: Expression;
+    let argumentList: Expression[] = [];
+
     if (name === 'style') {
-      node = callExpression(
-        this.callExpressionNameMap[CallExpressionName.style],
-        [target, value],
-      );
+      callee = this.callExpressionNameMap[CallExpressionName.style];
+      argumentList = [target, value];
+
     } else if (name === 'class') {
-      node = callExpression(
-        this.callExpressionNameMap[CallExpressionName.classe],
-        [target, value],
-      );
+      callee = this.callExpressionNameMap[CallExpressionName.classe];
+      argumentList = [target, value];
+
     } else if (/^on[^a-z]/.test(name)) {
-      node = callExpression(
-        this.callExpressionNameMap[CallExpressionName.event],
-        [target, stringLiteral(name), value],
-      );
+      callee = this.callExpressionNameMap[CallExpressionName.event];
+      argumentList = [target, stringLiteral(name), value];
+
     } else {
-      node = callExpression(
-        this.callExpressionNameMap[CallExpressionName.attr],
-        [target, stringLiteral(name), value],
-      );
+      callee = this.callExpressionNameMap[CallExpressionName.attr];
+      argumentList = [target, stringLiteral(name), value];
     }
 
-    this.mounteStatement.push(
-      expressionStatement(node),
-    );
+    this.pushMounteStatement({
+      callee,
+      argumentList,
+    });
+
+    if (refList.length) {
+      this.pushUpdateStatement({
+        refList,
+        callee,
+      });
+    }
   }
 
   public spreadAttr(options: {
@@ -109,14 +116,11 @@ export default class Render {
     express: Expression;
   }) {
     const { target, express } = options;
-    this.mounteStatement.push(
-      expressionStatement(
-        callExpression(
-          this.callExpressionNameMap[CallExpressionName.spreadAttr],
-          [target, express],
-        )
-      ),
-    );
+
+    this.pushMounteStatement({
+      callee: this.callExpressionNameMap[CallExpressionName.spreadAttr],
+      argumentList: [target, express],
+    });
   }
 
   public element(options: {
@@ -132,24 +136,23 @@ export default class Render {
       anchor,
     } = options;
     const id = this.nodePath.scope.generateUidIdentifier(tag);
-    this.renderStatement.push(
-      variableDeclaration(
-        'const',
-        [
-          variableDeclarator(
-            id,
-            callExpression(
-              this.callExpressionNameMap[CallExpressionName.element],
-              [stringLiteral(tag)],
-            )
-          )
-        ]
-      )
-    );
-    this.insertOrAppendCallExpression({ id, type, target, anchor });
+
+    this.pushRenderStatement({
+      id,
+      callee: this.callExpressionNameMap[CallExpressionName.element],
+      argumentList: [stringLiteral(tag)],
+    });
+    
+    this.pushMounteStatement({ 
+      id, target, anchor,
+      callee: this.callExpressionNameMap[type],
+    });
     
     if (type === 'insert') {
-      this.removeCallExpression(id);
+      this.pushDestroyStatement({
+        callee: this.callExpressionNameMap[CallExpressionName.remove],
+        id,
+      });
     }
 
     return id;
@@ -168,24 +171,22 @@ export default class Render {
       anchor,
     } = options;
     const id = this.nodePath.scope.generateUidIdentifier('text');
-    this.renderStatement.push(
-      variableDeclaration(
-        'const',
-        [
-          variableDeclarator(
-            id,
-            callExpression(
-              this.callExpressionNameMap[CallExpressionName.text],
-              [str],
-            )
-          )
-        ]
-      )
-    );
-    this.insertOrAppendCallExpression({ id, type, target, anchor });
+    this.pushRenderStatement({
+      id,
+      callee: this.callExpressionNameMap[CallExpressionName.text],
+      argumentList: [str],
+    });
+    
+    this.pushMounteStatement({ 
+      id, target, anchor,
+      callee: this.callExpressionNameMap[type],
+    });
     
     if (type === 'insert') {
-      this.removeCallExpression(id);
+      this.pushDestroyStatement({
+        callee: this.callExpressionNameMap[CallExpressionName.remove],
+        id,
+      });
     }
     
     return id;
@@ -193,116 +194,173 @@ export default class Render {
 
   public component(tag: string, props: ObjectExpression) {
     const id = this.nodePath.scope.generateUidIdentifier('component');
-    this.renderStatement.push(
-      variableDeclaration(
-        'const',
-        [
-          variableDeclarator(
-            id,
-            callExpression(
-              this.callExpressionNameMap[CallExpressionName.buildComponent],
-              [identifier(tag), props],
-            )
-          )
-        ]
-      )
-    );
-    this.mounteStatement.push(
-      expressionStatement(
-        callExpression(
-          memberExpression(id, identifier('mount')),
-          [targetIdentifier, anchorIdentifier],
-        )
-      )
-    );
-    this.destroyStatement.push(
-      expressionStatement(
-        callExpression(
-          memberExpression(id, identifier('destroy')),
-          [],
-        )
-      )
-    );
+    this.pushRenderStatement({
+      id,
+      callee: this.callExpressionNameMap[CallExpressionName.buildComponent],
+      argumentList: [identifier(tag), props],
+    });
+
+    this.pushMounteStatement({
+      callee: memberExpression(id, identifier('mount')),
+      argumentList: [targetIdentifier, anchorIdentifier],
+    });
+
+    this.pushUpdateStatement({
+      refList: [],
+      callee: memberExpression(id, identifier('mount')),
+    });
+
+    this.pushDestroyStatement({
+      callee: memberExpression(id, identifier('destroy')),
+    });
+
     return id;
   }
 
-  public expression(express: Expression) {
-    const id = this.nodePath.scope.generateUidIdentifier('express');
-    this.renderStatement.push(
-      variableDeclaration(
-        'const',
-        [
-          variableDeclarator(
-            id,
-            callExpression(
-              this.callExpressionNameMap[CallExpressionName.expression],
-              [express],
-            )
-          )
-        ]
-      )
-    );
-    this.mounteStatement.push(
-      expressionStatement(
-        callExpression(
-          memberExpression(id, identifier('mount')),
-          [targetIdentifier, anchorIdentifier],
-        )
-      )
-    );
-    this.destroyStatement.push(
-      expressionStatement(
-        callExpression(
-          memberExpression(id, identifier('destroy')),
-          [],
-        )
-      )
-    );
-    return id;
-  }
-
-  public removeCallExpression(id: Identifier) {
-    this.destroyStatement.push(
-      expressionStatement(
-        callExpression(
-          this.callExpressionNameMap[CallExpressionName.remove],
-          [id],
-        )
-      )
-    );
-  }
-
-  public insertOrAppendCallExpression(options: {
-    id: Identifier,
-    type: 'insert' | 'append',
-    target: Identifier,
+  public expression(options: {
+    express: Expression,
+    target?: Identifier,
     anchor?: Identifier,
+    refList?: Identifier[],
   }) {
-    const { id, type, target, anchor } = options;
-    const argumentList: Identifier[] = [target, id];
-    if (anchor) {
-      argumentList.push(anchor);
+    const { express, target = targetIdentifier, anchor, refList = [] } = options;
+    const id = this.nodePath.scope.generateUidIdentifier('express');
+    this.pushRenderStatement({
+      id,
+      callee: this.callExpressionNameMap[CallExpressionName.expression],
+      argumentList: [express],
+    });
+    
+    this.pushMounteStatement({
+      target, id, anchor,
+      callee: memberExpression(id, identifier('mount')),
+    });
+
+    this.pushDestroyStatement({
+      callee: memberExpression(id, identifier('destroy')),
+    });
+
+
+    if (refList.length) {
+      this.pushUpdateStatement({
+        refList,
+        callee: memberExpression(id, identifier('mount')),
+      });
     }
+    return id;
+  }
+
+  // callee(id)
+  // callee()
+  public pushUpdateStatement(options: {
+    callee: Expression;
+    refList: Identifier[];
+  }) {
+    const { callee, refList } = options;
+    const callExpressionNode = expressionStatement(
+      callExpression(
+        callee,
+        [refIdentifier],
+      ),
+    );
+
+    const ifStatementNode = ifStatement(
+      callExpression(
+        memberExpression(
+          arrayExpression(refList),
+          identifier('includes'),
+        ),
+        [refIdentifier]
+      ),
+      
+      callExpressionNode,
+    );
+
+    this.updateStatement.push(
+      refList.length ? ifStatementNode : callExpressionNode,
+    );
+  }
+
+  // callee(id)
+  // callee()
+  public pushRenderStatement(options: {
+    callee: Expression;
+    id: Identifier;
+    argumentList: Expression[];
+  }) {
+    const { id, callee, argumentList } = options;
+
+    this.renderStatement.push(
+      variableDeclaration(
+        'const',
+        [
+          variableDeclarator(
+            id,
+            callExpression(
+              callee,
+              argumentList,
+            )
+          )
+        ]
+      )
+    );
+  }
+
+  // callee(target, id, anchor)
+  // callee(target, anchor)
+  public pushMounteStatement(options: {
+    callee: Expression;
+    target?: Identifier,
+    id?: Identifier,
+    anchor?: Identifier,
+    argumentList?: Expression[];
+  }) {
+    const { id,  target, anchor, callee, argumentList } = options;
+    const defaultArgumentList: Identifier[] = [];
+    if (target) {
+      defaultArgumentList.push(target);
+    }
+
+    if (id) {
+      defaultArgumentList.push(id);
+    }
+
+    if (anchor) {
+      defaultArgumentList.push(anchor);
+    }
+
     this.mounteStatement.push(
       expressionStatement(
         callExpression(
-          this.callExpressionNameMap[type],
-          argumentList,
+          callee,
+          argumentList || defaultArgumentList,
         )
       )
     );
   }
 
-  public addRenderStatement(state: Statement) {
-    this.renderStatement.push(state);
-  }
+    // callee(id)
+  // callee()
+  public pushDestroyStatement(options: {
+    callee: Expression;
+    id?: Identifier;
+    argumentList?: Expression[];
+  }) {
+    const { id, callee, argumentList } = options;
+    const defaultArgumentList: Identifier[] = [];
 
-  public addMounteStatement(state: Statement) {
-    this.mounteStatement.push(state);
-  }
+    if (id) {
+      defaultArgumentList.push(id);
+    }
 
-  public addDestroyStatement(state: Statement) {
-    this.destroyStatement.push(state);
+    this.destroyStatement.push(
+      expressionStatement(
+        callExpression(
+          callee,
+          argumentList || defaultArgumentList,
+        )
+      )
+    );
   }
 
   public generateFunctionDeclaration() {
@@ -323,8 +381,7 @@ export default class Render {
             'method', 
             identifier('update'), 
             [
-              targetIdentifier,
-              anchorIdentifier,
+              refIdentifier,
             ], 
             blockStatement(this.updateStatement)
           ),

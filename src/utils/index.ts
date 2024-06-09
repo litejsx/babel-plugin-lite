@@ -5,6 +5,7 @@ import { JSXOpeningElement, isJSXIdentifier, isJSXMemberExpression, isJSXNamespa
 import { NodePath } from '@babel/traverse';
 
 export * from './parentId';
+export * from './getRefs';
 
 export const isHTMLTag = stringCurrying(HTML_TAGS, true);
 export const isSVGTag = stringCurrying(SVG_TAGS, true);
